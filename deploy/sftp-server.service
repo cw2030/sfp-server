@@ -1,0 +1,25 @@
+[Unit]
+Description=Rust SFTP Server + Admin API
+After=network.target mysqld.service
+Wants=mysqld.service
+
+[Service]
+Type=simple
+User=sftp
+Group=sftp
+WorkingDirectory=/opt/sftp-server
+EnvironmentFile=/opt/sftp-server/.env
+ExecStart=/opt/sftp-server/sftp-server
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+# 安全加固
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/data/sftp /opt/sftp-server/logs /opt/sftp-server/host_key
+
+[Install]
+WantedBy=multi-user.target
