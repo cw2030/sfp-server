@@ -11,13 +11,27 @@ use crate::api::AppState;
 use crate::cache::AppCache;
 use crate::config::AppConfig;
 use crate::sftp::SftpOptions;
+use chrono::{FixedOffset, Utc};
 use sqlx::mysql::MySqlPoolOptions;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
+use tracing_subscriber::fmt::format::Writer;
+use tracing_subscriber::fmt::time::FormatTime;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::EnvFilter;
+
+/// 东八区（UTC+8）日志时间格式化器
+struct East8Timer;
+
+impl FormatTime for East8Timer {
+    fn format_time(&self, w: &mut Writer<'_>) -> std::fmt::Result {
+        let tz = FixedOffset::east_opt(8 * 3600).expect("东八区偏移量非法");
+        let now = Utc::now().with_timezone(&tz);
+        write!(w, "{}", now.format("%Y-%m-%d %H:%M:%S%.3f"))
+    }
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -134,11 +148,13 @@ fn init_tracing(cfg: &AppConfig) -> anyhow::Result<tracing_appender::non_blockin
         .with(
             tracing_subscriber::fmt::layer()
                 .with_target(false)
+                .with_timer(East8Timer)
                 .compact(),
         )
         .with(
             tracing_subscriber::fmt::layer()
                 .json()
+                .with_timer(East8Timer)
                 .with_writer(non_blocking)
                 .with_ansi(false),
         )
